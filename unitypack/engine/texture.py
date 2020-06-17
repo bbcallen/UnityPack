@@ -76,8 +76,8 @@ class TextureFormat(IntEnum):
 			return "A"
 		elif self == TextureFormat.RGBA4444:
 			return "RGBA;4B"
-		elif self == TextureFormat.ARGB4444:
-			return "RGBA;4B"
+		elif self == TextureFormat.ETC2_RGB:
+			return "RGB"
 		return "RGBA"
 
 
@@ -94,6 +94,9 @@ IMPLEMENTED_FORMATS = (
 	TextureFormat.DXT5,
 	TextureFormat.DXT5Crunched,
 	TextureFormat.BC7,
+	TextureFormat.ETC2_RGB,
+	TextureFormat.ETC2_RGBA1,
+	TextureFormat.ETC2_RGBA8,
 )
 
 
@@ -120,6 +123,7 @@ class Material(Object):
 					yield vk, vv
 				else:  # Unity <= 5.4
 					yield vk["name"], vv
+
 		return {k: dict(_unpack_prop(v)) for k, v in self._obj["m_SavedProperties"].items()}
 
 
@@ -158,22 +162,36 @@ class Texture2D(Texture):
 	def image(self):
 		from PIL import Image
 		from decrunch import File as CrunchFile
+		import etcpack
+		# needs to be imported once in the active code, so that the codec can register itself
 
 		if self.format not in IMPLEMENTED_FORMATS:
 			raise NotImplementedError("Unimplemented format %r" % (self.format))
 
 		if self.format in (TextureFormat.DXT1, TextureFormat.DXT1Crunched):
 			codec = "bcn"
-			args = (1, )
+			args = (1,)
 		elif self.format in (TextureFormat.DXT5, TextureFormat.DXT5Crunched):
 			codec = "bcn"
-			args = (3, )
+			args = (3,)
 		elif self.format == TextureFormat.BC7:
 			codec = "bcn"
-			args = (7, )
+			args = (7,)
+		elif self.format in (TextureFormat.ETC2_RGB,):
+			# ETC2PACKAGE_RGB_NO_MIPMAPS
+			codec = "etc2"
+			args = (1,)
+		elif self.format in (TextureFormat.ETC2_RGBA1,):
+			# ETC2PACKAGE_RGBA1_NO_MIPMAPS
+			codec = "etc2"
+			args = (4,)
+		elif self.format in (TextureFormat.ETC2_RGBA8,):
+			# ETC2PACKAGE_RGBA_NO_MIPMAPS
+			codec = "etc2"
+			args = (3,)
 		else:
 			codec = "raw"
-			args = (self.format.pixel_format, )
+			args = (self.format.pixel_format,)
 
 		mode = "RGB" if self.format.pixel_format in ("RGB", "RGB;16") else "RGBA"
 		size = (self.width, self.height)
