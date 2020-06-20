@@ -31,7 +31,7 @@ class ObjectInfo:
 			if script:
 				try:
 					typename = script.resolve()["m_ClassName"]
-				except NotImplementedError:
+				except (NotImplementedError, TypeError):
 					typename = script.type.type[5:-1]  # Capture type name in PPtr<...>
 			elif self.type_id in self.asset.tree.type_trees:
 				typename = self.asset.tree.type_trees[self.type_id].type
